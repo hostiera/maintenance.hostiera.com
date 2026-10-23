@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Site Under Maintenance</title>
-  <!-- Font Awesome CDN for icons -->
   <link
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     rel="stylesheet"
@@ -21,7 +20,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       text-align: center;
     }
 
@@ -31,6 +30,7 @@
       border-radius: 20px;
       max-width: 500px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .logo img {
@@ -60,15 +60,42 @@
     }
 
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
+    }
+
+    .check-btn {
+      background: #fff;
+      color: #7C4DFF;
+      border: none;
+      border-radius: 30px;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .check-btn:hover { transform: scale(1.05); }
+    .check-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .check-btn i { margin-right: 8px; }
+
+    .status {
+      margin-top: 18px;
+      font-size: 0.95rem;
+      color: #f0f0f0;
+      min-height: 1.4em;
     }
 
     .footer {
       margin-top: 30px;
       font-size: 0.9rem;
       color: #f0f0f0;
+    }
+
+    .support-note {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0 0 8px;
     }
 
     .footer i {
@@ -92,10 +119,82 @@
     <h1>We'll Be Back Soon</h1>
     <p>We're performing scheduled maintenance.<br />Thank you for your patience.</p>
     <div class="spinner"></div>
+
+    <button id="checkBtn" class="check-btn" type="button">
+      <i class="fa-solid fa-rotate"></i>Check Now
+    </button>
+    <div id="status" class="status">Next auto-check in 10s</div>
+
     <div class="footer">
+      <p class="support-note">
+        If you experience any major technical issues in the meantime, please feel free to reach out to our support team at
+      </p>
       <i class="fa-solid fa-envelope"></i>
       <a href="mailto:support@hostiera.com">support@hostiera.com</a>
     </div>
   </div>
+
+  <script>
+    (function () {
+      var SITE_URL = "https://www.hostiera.com";
+      var INTERVAL = 10; // seconds
+
+      var btn = document.getElementById("checkBtn");
+      var statusEl = document.getElementById("status");
+      var countdown = INTERVAL;
+      var checking = false;
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function checkSite() {
+        if (checking) return;
+        checking = true;
+        btn.disabled = true;
+        setStatus("Checking site...");
+
+        var controller = new AbortController();
+        var timer = setTimeout(function () { controller.abort(); }, 8000);
+
+        // no-cors: cross-origin hone par bhi reachability check ho jata hai
+        fetch(SITE_URL + "/?_=" + Date.now(), {
+          method: "GET",
+          mode: "no-cors",
+          cache: "no-store",
+          signal: controller.signal
+        })
+          .then(function () {
+            clearTimeout(timer);
+            setStatus("Site is back! Redirecting...");
+            window.location.href = SITE_URL;
+          })
+          .catch(function () {
+            clearTimeout(timer);
+            checking = false;
+            btn.disabled = false;
+            countdown = INTERVAL;
+            setStatus("Still under maintenance. Retrying in " + countdown + "s");
+          });
+      }
+
+      btn.addEventListener("click", function () {
+        countdown = INTERVAL;
+        checkSite();
+      });
+
+      // Auto-check har 10 seconds me
+      setInterval(function () {
+        if (checking) return;
+        countdown--;
+        if (countdown <= 0) {
+          countdown = INTERVAL;
+          checkSite();
+        } else {
+          setStatus("Next auto-check in " + countdown + "s");
+        }
+      }, 1000);
+    })();
+  </script>
 </body>
 </html>
