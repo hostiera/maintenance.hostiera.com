@@ -140,6 +140,7 @@
 
   <script>
     (function () {
+      // Yahan wo URL daalo jahan maintenance ke baad redirect karna hai
       var SITE_URL = "https://www.hpanel.in.net";
       var INTERVAL = 10; // seconds
 
@@ -169,7 +170,7 @@
             return res.text().then(function (body) {
               // 503/404/etc ya maintenance page hi wapas mila => abhi site up nahi hai
               var isMaintenance =
-                !res.ok ||
+                res.status >= 500 ||
                 body.indexOf('name="maintenance-page"') !== -1 ||
                 body.indexOf("Site Under Maintenance") !== -1;
               if (isMaintenance) {
@@ -192,8 +193,7 @@
           .then(function () {
             clearTimeout(timer);
             setStatus("Site is back! Redirecting...");
-            // Cache-busting param: browser/CDN purana maintenance page dobara na dikhaye
-            window.location.replace(SITE_URL + "/?back=" + Date.now());
+            window.location.replace(SITE_URL);
           })
           .catch(function () {
             clearTimeout(timer);
