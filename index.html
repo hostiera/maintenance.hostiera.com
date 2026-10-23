@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="maintenance-page" content="true" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Site Under Maintenance</title>
   <link
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -166,7 +169,9 @@
             return res.text().then(function (body) {
               // 503/404/etc ya maintenance page hi wapas mila => abhi site up nahi hai
               var isMaintenance =
-                !res.ok || body.indexOf('name="maintenance-page"') !== -1;
+                !res.ok ||
+                body.indexOf('name="maintenance-page"') !== -1 ||
+                body.indexOf("Site Under Maintenance") !== -1;
               if (isMaintenance) {
                 var e = new Error("still-maintenance");
                 e.stillMaintenance = true;
@@ -187,7 +192,8 @@
           .then(function () {
             clearTimeout(timer);
             setStatus("Site is back! Redirecting...");
-            window.location.href = SITE_URL;
+            // Cache-busting param: browser/CDN purana maintenance page dobara na dikhaye
+            window.location.replace(SITE_URL + "/?back=" + Date.now());
           })
           .catch(function () {
             clearTimeout(timer);
