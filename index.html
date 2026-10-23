@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="maintenance-page" content="true" />
   <title>Site Under Maintenance</title>
   <link
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -157,13 +158,32 @@
         var controller = new AbortController();
         var timer = setTimeout(function () { controller.abort(); }, 8000);
 
-        // no-cors: cross-origin hone par bhi reachability check ho jata hai
-        fetch(SITE_URL + "/?_=" + Date.now(), {
-          method: "GET",
-          mode: "no-cors",
-          cache: "no-store",
-          signal: controller.signal
-        })
+        var url = SITE_URL + "/?_=" + Date.now();
+
+        // Step 1: normal fetch (status + page content padh sakte hain agar CORS/same-origin allowed ho)
+        fetch(url, { method: "GET", cache: "no-store", signal: controller.signal })
+          .then(function (res) {
+            return res.text().then(function (body) {
+              // 503/404/etc ya maintenance page hi wapas mila => abhi site up nahi hai
+              var isMaintenance =
+                !res.ok || body.indexOf('name="maintenance-page"') !== -1;
+              if (isMaintenance) {
+                var e = new Error("still-maintenance");
+                e.stillMaintenance = true;
+                throw e;
+              }
+            });
+          })
+          .catch(function (err) {
+            if (err && err.stillMaintenance) throw err;
+            // Step 2: CORS block hua to no-cors fallback (sirf reachability check hota hai)
+            return fetch(url, {
+              method: "GET",
+              mode: "no-cors",
+              cache: "no-store",
+              signal: controller.signal
+            });
+          })
           .then(function () {
             clearTimeout(timer);
             setStatus("Site is back! Redirecting...");
